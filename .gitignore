@@ -1,0 +1,19 @@
+# dependencies & build
+node_modules
+.next
+out
+tsconfig.tsbuildinfo
+next-env.d.ts
+
+# rahasia — JANGAN PERNAH di-commit
+.env
+.env.local
+.env.*.local
+
+# data anggota asli (nama, no. HP, email, tanggal lahir) — jalankan sekali di Supabase, jangan masuk git
+supabase/seed.sql
+
+# lain-lain
+.vercel
+.DS_Store
+*.log

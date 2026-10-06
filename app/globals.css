@@ -1,0 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background: theme('colors.bg');
+  color: theme('colors.text');
+}
+
+/* Variabel warna yang dipakai lib/attendance.ts (pctColor) — samakan dengan tailwind.config.ts */
+:root {
+  --accent: #0E7C66;
+  --amber: #B45309;
+  --red: #DC2626;
+  --muted2: #8B928A;
+}
