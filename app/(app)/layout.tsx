@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Sidebar } from '@/components/nav/Sidebar';
 import { BottomNav } from '@/components/nav/BottomNav';
 import type { Profile } from '@/lib/permissions';
+import { signOut } from './pengaturan/actions';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -16,14 +17,38 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // metadata lengkap yang dipakai postgrest-js untuk inferensi penuh,
   // jadi hasil query di-cast manual lewat `unknown` sampai types asli
   // di-generate (`supabase gen types ...`).
-  const { data: profileRaw } = await supabase.from('profiles').select('id, nama, role, active').eq('id', user.id).single();
+  const { data: profileRaw, error: profileErr } = await supabase.from('profiles').select('id, nama, role, active').eq('id', user.id).single();
   const typedProfile = profileRaw as unknown as Profile | null;
 
-  // Defense-in-depth: middleware sudah redirect kalau belum login, ini
-  // menutup kasus profil belum ada / user dinonaktifkan setelah login.
+  // Profil tidak terbaca / akun nonaktif: JANGAN redirect ke /login — middleware
+  // akan melempar balik ke "/" (cookie sesi belum terhapus) sehingga terjadi
+  // loop. Tampilkan pesan + tombol keluar (server action, bisa menghapus cookie).
   if (!typedProfile || !typedProfile.active) {
-    await supabase.auth.signOut();
-    redirect('/login');
+    const inactive = !!typedProfile && !typedProfile.active;
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-bg px-6">
+        <div className="w-full max-w-md bg-card border border-border rounded-2xl p-6">
+          <h1 className="text-lg font-extrabold text-text mb-2">
+            {inactive ? 'Akun dinonaktifkan' : 'Profil akun tidak dapat dibaca'}
+          </h1>
+          <p className="text-sm text-muted mb-3">
+            {inactive
+              ? 'Akun ini sudah dinonaktifkan. Hubungi superadmin.'
+              : 'Login berhasil, tetapi data profil tidak bisa dibaca dari database. Kirim pesan di bawah ini ke pengelola aplikasi.'}
+          </p>
+          {!inactive && (
+            <pre className="text-xs bg-bg border border-border rounded-lg p-3 mb-4 whitespace-pre-wrap break-words">
+              {profileErr ? `${profileErr.code ?? ''} ${profileErr.message}` : 'Baris profil tidak ditemukan untuk user ini.'}
+            </pre>
+          )}
+          <form action={signOut}>
+            <button type="submit" className="w-full rounded-xl bg-accent text-white font-bold py-3 text-sm">
+              Keluar
+            </button>
+          </form>
+        </div>
+      </main>
+    );
   }
 
   return (
