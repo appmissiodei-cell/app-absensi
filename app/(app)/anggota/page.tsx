@@ -49,7 +49,7 @@ export default async function AnggotaPage({
   const [{ data: members }, { data: attendanceRows }] = await Promise.all([
     supabase
       .from('members')
-      .select('id, nama_baptis, nama_lengkap, status, pelayanan, cell_group_id, cell_groups(nama)')
+      .select('id, nama_baptis, nama_lengkap, status, pelayanan, cell_group_id, cell_groups!members_cell_group_id_fkey(nama)')
       .returns<MemberRow[]>(),
     supabase
       .from('attendance')
