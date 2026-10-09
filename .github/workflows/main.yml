@@ -1,0 +1,38 @@
+name: Backup data Supabase
+
+# Berjalan otomatis tiap hari pukul 00:00 WIB (17:00 UTC) dan bisa dijalankan manual
+# lewat tab Actions -> "Backup data Supabase" -> Run workflow.
+on:
+  schedule:
+    - cron: '0 17 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Ambil data dari Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/backup.mjs
+
+      # Disimpan sebagai "artifact" privat (BUKAN di-commit ke repo), supaya data pribadi
+      # tidak masuk riwayat git. Hanya orang yang punya akses ke repo yang bisa mengunduh.
+      - name: Simpan hasil backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ github.run_id }}
+          path: backup/
+          retention-days: 90
+          if-no-files-found: error
