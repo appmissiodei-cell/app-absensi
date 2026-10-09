@@ -22,7 +22,7 @@ export default async function Page({ params, searchParams }: { params: { id: str
   const [{ data: ev }, { data: att }, { data: members }, { data: cgs }, { data: profile }] = await Promise.all([
     supabase.from('events').select('*').eq('id', params.id).maybeSingle<Ev>(),
     supabase.from('attendance').select('member_id, hadir').eq('event_id', params.id).returns<A[]>(),
-    supabase.from('members').select('id, nama_baptis, nama_lengkap, status, cell_group_id, cell_groups(nama)').returns<M[]>(),
+    supabase.from('members').select('id, nama_baptis, nama_lengkap, status, cell_group_id, cell_groups!members_cell_group_id_fkey(nama)').returns<M[]>(),
     supabase.from('cell_groups').select('id, nama').order('nama').returns<{ id: string; nama: string }[]>(),
     supabase.from('profiles').select('id, nama, role, active').eq('id', user?.id ?? '').maybeSingle(),
   ]);
