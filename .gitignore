@@ -17,3 +17,6 @@ supabase/seed.sql
 .vercel
 .DS_Store
 *.log
+
+# hasil backup lokal (berisi data pribadi)
+backup/

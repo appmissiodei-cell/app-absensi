@@ -47,5 +47,9 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // Aset PWA (manifest, service worker, ikon, halaman offline) harus publik: kalau
+  // ikut dicegat middleware, browser dialihkan ke /login dan aplikasi tidak bisa di-install.
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw.js|offline.html|icons/).*)',
+  ],
 };
