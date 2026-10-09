@@ -42,7 +42,7 @@ export default async function Page({
   const [{ data: m }, { data: att }] = await Promise.all([
     supabase
       .from('members')
-      .select('id, nama_baptis, nama_lengkap, nik, no_hp, email, pelayanan, tanggal_lahir, wedding_anniversary, status, cell_groups(nama)')
+      .select('id, nama_baptis, nama_lengkap, nik, no_hp, email, pelayanan, tanggal_lahir, wedding_anniversary, status, cell_groups!members_cell_group_id_fkey(nama)')
       .eq('id', params.id)
       .maybeSingle<Row>(),
     supabase.from('attendance').select('hadir, events(tanggal, jenis)').eq('member_id', params.id).returns<AttRow[]>(),
