@@ -61,7 +61,7 @@ export async function buildLaporan(sb: SupabaseClient, p: LaporanParams): Promis
   const filterStatus = p.filterStatus || 'Semua';
   const sortBy = p.sortBy || 'nama';
   const [{ data: ms }, { data: att }] = await Promise.all([
-    sb.from('members').select('id, nama_baptis, nama_lengkap, status, pelayanan, cell_groups(nama)'),
+    sb.from('members').select('id, nama_baptis, nama_lengkap, status, pelayanan, cell_groups!members_cell_group_id_fkey(nama)'),
     sb.from('attendance').select('member_id, hadir, events(tanggal, jenis)'),
   ]);
   const name = (m: MemRow) => `${m.nama_baptis} ${m.nama_lengkap}`.trim();
