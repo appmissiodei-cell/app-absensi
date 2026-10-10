@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   ws.addRow([]);
   const head = ws.addRow(d.columns);
   head.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-  head.eachCell((c) => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0E7C66' } }; });
+  head.eachCell((c) => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF094B7F' } }; });
   d.rows.forEach((r) => ws.addRow(r));
   if (d.footer) ws.addRow(d.footer).font = { bold: true };
   ws.columns = d.columns.map((_, i) => ({ width: i === 0 ? 30 : i === 2 && d.scope === 'event' ? 40 : 20 }));

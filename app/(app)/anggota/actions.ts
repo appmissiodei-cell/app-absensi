@@ -1,7 +1,9 @@
 'use server';
 
+import { randomBytes } from 'crypto';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
+import { getContext } from '@/lib/server-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { PELAYANAN_LIST, MAX_PELAYANAN_PER_MEMBER } from '@/lib/constants';
 import { isSuperadmin, type Profile } from '@/lib/permissions';
@@ -44,9 +46,10 @@ export async function saveMember(formData: FormData): Promise<SaveMemberResult> 
     return { error: 'Format tanggal tidak valid.' };
   }
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, isStaff } = await getContext();
   if (!user) return { error: 'Sesi habis, silakan login ulang.' };
+  if (!isStaff) return { error: 'Akun Anda tidak punya izin menyimpan data.' };
+  const supabase = await createClient();
 
   const payload = {
     nama_baptis: namaBaptis,
@@ -111,4 +114,17 @@ export async function deleteMember(id: string): Promise<SaveMemberResult> {
 
   revalidatePath('/anggota');
   redirect('/anggota');
+}
+
+/** Ganti token QR anggota (link/QR lama langsung tidak berlaku). Boleh dilakukan admin & superadmin. */
+export async function regenerateQrToken(memberId: string): Promise<SaveMemberResult> {
+  const { sb: supabase, user, isStaff } = await getContext();
+  if (!user) return { error: 'Sesi habis, silakan login ulang.' };
+  if (!isStaff) return { error: 'Akun tidak aktif.' };
+  const token = randomBytes(32).toString('hex');
+  const { error } = await supabase.from('members').update({ qr_token: token }).eq('id', memberId);
+  if (error) return { error: `Gagal mengganti token: ${error.message}` };
+  revalidatePath('/anggota/kartu');
+  revalidatePath(`/anggota/${memberId}`);
+  return undefined;
 }

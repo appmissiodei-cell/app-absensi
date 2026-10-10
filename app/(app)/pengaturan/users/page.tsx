@@ -37,7 +37,7 @@ export default async function Page() {
               </span>
               <span className="flex flex-col items-end gap-1">
                 <span className="text-[11px] font-bold px-2 py-1 rounded-full" style={{ background: c + '22', color: c }}>{roleLabel(u.role)}</span>
-                <span className="text-[11px] font-bold px-2 py-1 rounded-full" style={{ background: u.active ? 'var(--accent-light, #E9F5F1)' : '#F6F7F4', color: u.active ? 'var(--accent)' : '#6C736A' }}>{u.active ? 'Aktif' : 'Nonaktif'}</span>
+                <span className="text-[11px] font-bold px-2 py-1 rounded-full" style={{ background: u.active ? 'var(--accent-light, #E6EFFC)' : '#EFF4FB', color: u.active ? 'var(--accent)' : '#62718A' }}>{u.active ? 'Aktif' : 'Nonaktif'}</span>
               </span>
             </Link>
           );

@@ -1,10 +1,12 @@
 import Link from 'next/link';
-import { Plus, Download } from 'lucide-react';
+import { Plus, Download, QrCode } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/fetch-all';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { FilterBar } from '@/components/filter/FilterBar';
 import { SortTh } from '@/components/ui/SortTh';
 import { PELAYANAN_LIST } from '@/lib/constants';
+import { dateLong } from '@/lib/dates';
 import { computePct, resolveRange, pctColor } from '@/lib/attendance';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +17,7 @@ type MemberRow = {
   nama_lengkap: string;
   status: 'Aktif' | 'Tidak Aktif';
   pelayanan: string[];
+  tanggal_lahir: string | null;
   cell_group_id: string | null;
   cell_groups: { nama: string } | null;
 };
@@ -46,15 +49,14 @@ export default async function AnggotaPage({
 }) {
   const supabase = await createClient();
 
-  const [{ data: members }, { data: attendanceRows }] = await Promise.all([
+  const [{ data: members }, attendanceRows] = await Promise.all([
     supabase
       .from('members')
-      .select('id, nama_baptis, nama_lengkap, status, pelayanan, cell_group_id, cell_groups!members_cell_group_id_fkey(nama)')
+      .select('id, nama_baptis, nama_lengkap, status, pelayanan, tanggal_lahir, cell_group_id, cell_groups!members_cell_group_id_fkey(nama)')
       .returns<MemberRow[]>(),
-    supabase
-      .from('attendance')
-      .select('member_id, hadir, events(tanggal, jenis)')
-      .returns<AttendanceJoinRow[]>(),
+    fetchAllRows<AttendanceJoinRow>((from, to) =>
+      supabase.from('attendance').select('member_id, hadir, events(tanggal, jenis)').order('id').range(from, to)
+    ),
   ]);
 
   const allMembers = members || [];
@@ -96,6 +98,14 @@ export default async function AnggotaPage({
     let cmp = 0;
     if (sort === 'cg') cmp = (a.cg ?? -1) - (b.cg ?? -1);
     else if (sort === 'wn') cmp = (a.wn ?? -1) - (b.wn ?? -1);
+    else if (sort === 'lahir') {
+      // urut bulan-tanggal (ulang tahun), yang kosong selalu di bawah
+      const ka = a.m.tanggal_lahir?.slice(5), kb = b.m.tanggal_lahir?.slice(5);
+      if (!ka && !kb) return 0;
+      if (!ka) return 1;
+      if (!kb) return -1;
+      cmp = ka.localeCompare(kb);
+    }
     else if (sort === 'cgname') cmp = cgName(a.m).localeCompare(cgName(b.m));
     else cmp = fullName(a.m).localeCompare(fullName(b.m)); // 'nama'
     return dir === 'asc' ? cmp : -cmp;
@@ -113,6 +123,9 @@ export default async function AnggotaPage({
               className="w-9 h-9 rounded-lg border border-border bg-bg flex items-center justify-center flex-shrink-0"
             >
               <Download size={16} />
+            </Link>
+            <Link href="/anggota/kartu" className="w-9 h-9 rounded-lg border border-border bg-bg flex items-center justify-center flex-shrink-0" aria-label="Kartu QR anggota">
+              <QrCode size={16} />
             </Link>
             <Link href="/anggota/baru" className="w-9 h-9 rounded-lg bg-accent text-white flex items-center justify-center flex-shrink-0">
               <Plus size={16} />
@@ -145,6 +158,7 @@ export default async function AnggotaPage({
             <tr>
               <SortTh label="Nama" sortKey="nama" currentSort={sort} currentDir={dir} searchParams={searchParams} />
               <SortTh label="Cell Group" sortKey="cgname" currentSort={sort} currentDir={dir} searchParams={searchParams} />
+              <SortTh label="Tgl Lahir" sortKey="lahir" currentSort={sort} currentDir={dir} searchParams={searchParams} />
               <SortTh label="% CG" sortKey="cg" currentSort={sort} currentDir={dir} searchParams={searchParams} />
               <SortTh label="% WN" sortKey="wn" currentSort={sort} currentDir={dir} searchParams={searchParams} />
             </tr>
@@ -152,7 +166,7 @@ export default async function AnggotaPage({
           <tbody>
             {withPct.length === 0 && (
               <tr>
-                <td colSpan={4} className="text-center text-muted2 text-sm py-6">
+                <td colSpan={5} className="text-center text-muted2 text-sm py-6">
                   Tidak ada anggota yang cocok.
                 </td>
               </tr>
@@ -172,6 +186,11 @@ export default async function AnggotaPage({
                   <td className="p-0">
                     <Link href={`/anggota/${m.id}`} className="block px-1.5 py-2.5 text-[12.5px]">
                       {cgName(m)}
+                    </Link>
+                  </td>
+                  <td className="p-0">
+                    <Link href={`/anggota/${m.id}`} className="block px-1.5 py-2.5 text-[12.5px] whitespace-nowrap">
+                      {m.tanggal_lahir ? dateLong(m.tanggal_lahir) : '—'}
                     </Link>
                   </td>
                   <td className="p-0">

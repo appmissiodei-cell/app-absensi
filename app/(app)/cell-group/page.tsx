@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/fetch-all';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { FilterBar } from '@/components/filter/FilterBar';
 import { SortTh } from '@/components/ui/SortTh';
@@ -20,10 +21,12 @@ export default async function CellGroupPage({
 }) {
   const supabase = await createClient();
 
-  const [{ data: cgs }, { data: members }, { data: attendanceRows }] = await Promise.all([
+  const [{ data: cgs }, { data: members }, attendanceRows] = await Promise.all([
     supabase.from('cell_groups').select('id, nama, koordinator_id').returns<CgRow[]>(),
     supabase.from('members').select('id, cell_group_id').returns<MemberRow[]>(),
-    supabase.from('attendance').select('member_id, hadir, events(tanggal, jenis)').returns<AttendanceJoinRow[]>(),
+    fetchAllRows<AttendanceJoinRow>((from, to) =>
+      supabase.from('attendance').select('member_id, hadir, events(tanggal, jenis)').order('id').range(from, to)
+    ),
   ]);
 
   const allCgs = cgs || [];

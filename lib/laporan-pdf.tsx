@@ -5,10 +5,10 @@ import type { LaporanData } from './laporan';
 const s = StyleSheet.create({
   page: { padding: 32, fontSize: 10, fontFamily: 'Helvetica' },
   title: { fontSize: 16, fontWeight: 700, marginBottom: 2 },
-  sub: { fontSize: 10, color: '#6C736A', marginBottom: 12 },
-  row: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#E4E7E1', paddingVertical: 4 },
-  head: { backgroundColor: '#F6F7F4', fontWeight: 700 },
-  note: { marginTop: 8, fontSize: 9, color: '#8B928A' },
+  sub: { fontSize: 10, color: '#62718A', marginBottom: 12 },
+  row: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#E0E8F4', paddingVertical: 4 },
+  head: { backgroundColor: '#EFF4FB', fontWeight: 700 },
+  note: { marginTop: 8, fontSize: 9, color: '#8A97AC' },
 });
 
 export function LaporanPdf({ data }: { data: LaporanData }) {

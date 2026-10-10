@@ -36,7 +36,7 @@ export default async function Page({ params }: { params: { id: string } }) {
         <div className="text-xs text-muted mt-0.5">{email || '—'}</div>
         <div className="flex gap-1.5 justify-center mt-2">
           <span className="text-[11px] font-bold px-2 py-1 rounded-full" style={{ background: c + '22', color: c }}>{roleLabel(u.role)}</span>
-          <span className="text-[11px] font-bold px-2 py-1 rounded-full" style={{ background: u.active ? '#E9F5F1' : '#F6F7F4', color: u.active ? '#0E7C66' : '#6C736A' }}>{u.active ? 'Aktif' : 'Nonaktif'}</span>
+          <span className="text-[11px] font-bold px-2 py-1 rounded-full" style={{ background: u.active ? 'var(--accent-light)' : '#EFF4FB', color: u.active ? 'var(--accent)' : '#62718A' }}>{u.active ? 'Aktif' : 'Nonaktif'}</span>
         </div>
       </div>
 

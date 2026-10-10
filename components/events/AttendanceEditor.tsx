@@ -62,7 +62,7 @@ export function AttendanceEditor({
             <button key={a.id} type="button" onClick={() => setState((s) => ({ ...s, [a.id]: !s[a.id] }))}
               className="flex items-center gap-3 bg-card border border-border rounded-xl px-3.5 py-[11px] text-left w-full">
               <span className="w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 border-2"
-                style={{ borderColor: checked ? 'var(--accent)' : '#E4E7E1', background: checked ? 'var(--accent)' : '#fff' }}>
+                style={{ borderColor: checked ? 'var(--accent)' : '#C9D6EA', background: checked ? 'var(--accent)' : '#fff' }}>
                 {checked && <Check size={14} color="#fff" />}
               </span>
               <span className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0" style={{ background: avatarColor(a.id) }}>{a.initials}</span>

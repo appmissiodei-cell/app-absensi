@@ -1,16 +1,18 @@
 import Link from 'next/link';
-import { Plus, UserPlus, ChevronDown, Users } from 'lucide-react';
+import { Plus, UserPlus, ChevronDown, Users, Cake } from 'lucide-react';
+import { RingIcon } from '@/components/ui/RingIcon';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/fetch-all';
 import { AttendanceBarChart } from '@/components/charts/AttendanceBarChart';
 import { WN_ROLE_DEFS } from '@/lib/constants';
 import { computePct, resolveRange } from '@/lib/attendance';
 import { isSuperadmin, type Profile } from '@/lib/permissions';
-import { jakartaToday } from '@/lib/dates';
+import { jakartaToday, fmtDate, dateLong, birthLabel, anniversaryNumber } from '@/lib/dates';
 
 export const dynamic = 'force-dynamic';
 
 type EventRow = { id: string; jenis: string; tanggal: string; keterangan: string | null; pic: Record<string, string> | null };
-type MemberRow = { id: string; nama_baptis: string; nama_lengkap: string; tanggal_lahir: string | null; cell_group_id: string | null };
+type MemberRow = { id: string; nama_baptis: string; nama_lengkap: string; tanggal_lahir: string | null; wedding_anniversary: string | null; cell_group_id: string | null };
 type AttendanceJoinRow = { member_id: string; hadir: boolean; events: { tanggal: string; jenis: string } | null };
 
 const MONTH_NAMES_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -36,11 +38,11 @@ export default async function RingkasanPage({
   const todayIso = today.iso;
   const monthRange = resolveRange('month');
 
-  const [{ data: allMembers }, { data: monthEvents }, { data: upcomingEventsRaw }, { data: attendanceRows }] = await Promise.all([
-    supabase.from('members').select('id, nama_baptis, nama_lengkap, tanggal_lahir, cell_group_id').returns<MemberRow[]>(),
+  const [{ data: allMembers }, { data: monthEvents }, { data: upcomingEventsRaw }, attendanceRows] = await Promise.all([
+    supabase.from('members').select('id, nama_baptis, nama_lengkap, tanggal_lahir, wedding_anniversary, cell_group_id').returns<MemberRow[]>(),
     supabase.from('events').select('id').gte('tanggal', monthRange.start).lte('tanggal', monthRange.end),
     supabase.from('events').select('id, jenis, tanggal, keterangan, pic').gte('tanggal', todayIso).order('tanggal', { ascending: true }).returns<EventRow[]>(),
-    supabase.from('attendance').select('member_id, hadir, events(tanggal, jenis)').returns<AttendanceJoinRow[]>(),
+    fetchAllRows<AttendanceJoinRow>((from, to) => supabase.from('attendance').select('member_id, hadir, events(tanggal, jenis)').order('id').range(from, to)),
   ]);
 
   const members = allMembers || [];
@@ -67,6 +69,7 @@ export default async function RingkasanPage({
 
   const thisMonthMM = String(today.month0 + 1).padStart(2, '0');
   const bdayMembers = members.filter((m) => m.tanggal_lahir && m.tanggal_lahir.slice(5, 7) === thisMonthMM);
+  const annivMembers = members.filter((m) => m.wedding_anniversary && m.wedding_anniversary.slice(5, 7) === thisMonthMM);
 
   const incompleteWN = upcomingEvents
     .filter((e) => e.jenis === 'Worship Night')
@@ -90,13 +93,12 @@ export default async function RingkasanPage({
     .order('tanggal', { ascending: true })
     .returns<{ id: string; jenis: string; tanggal: string }[]>();
   const chartEventIds = (chartEvents || []).map((e) => e.id);
-  const { data: chartAttendance } = chartEventIds.length
-    ? await supabase
-        .from('attendance')
-        .select('event_id, hadir')
-        .in('event_id', chartEventIds)
-        .returns<{ event_id: string; hadir: boolean }[]>()
-    : { data: [] as { event_id: string; hadir: boolean }[] };
+  // hanya baris hadir=true yang dihitung, dan di-page supaya tidak terpotong batas 1000 baris
+  const chartAttendance = chartEventIds.length
+    ? await fetchAllRows<{ event_id: string; hadir: boolean }>((from, to) =>
+        supabase.from('attendance').select('event_id, hadir').in('event_id', chartEventIds).eq('hadir', true).order('id').range(from, to)
+      )
+    : [];
 
   function hadirCount(eventId: string) {
     return (chartAttendance || []).filter((a) => a.event_id === eventId && a.hadir).length;
@@ -110,10 +112,10 @@ export default async function RingkasanPage({
 
   return (
     <div>
-      <div className="bg-dark text-white rounded-2xl px-5 py-4 mb-4">
+      <div className="hero rounded-3xl px-5 py-4 mb-4">
         <h1 className="text-lg font-extrabold">Ringkasan</h1>
         <p className="text-xs text-white/70 mt-0.5">
-          Komunitas MD &middot; {MONTH_NAMES_ID[today.month0]} {today.year}
+          Komunitas Missio Dei &middot; {MONTH_NAMES_ID[today.month0]} {today.year}
         </p>
       </div>
 
@@ -201,7 +203,7 @@ export default async function RingkasanPage({
             </span>
             <span className="flex-1">
               <div className="text-[13.5px] font-bold">{e.jenis}</div>
-              <div className="text-[11.5px] text-muted">{shortDate(e.tanggal)}</div>
+              <div className="text-[11.5px] text-muted">{fmtDate(e.tanggal)}</div>
             </span>
           </Link>
         ))}
@@ -219,7 +221,7 @@ export default async function RingkasanPage({
               </span>
               <span className="flex-1">
                 <div className="text-[13.5px] font-bold">Worship Night</div>
-                <div className="text-[11.5px] text-muted">{shortDate(e.tanggal)}</div>
+                <div className="text-[11.5px] text-muted">{fmtDate(e.tanggal)}</div>
               </span>
               <span className="text-[11px] font-bold px-2 py-1 rounded-full" style={{ background: `${col}22`, color: col }}>
                 PIC {filled}/{total}
@@ -235,16 +237,35 @@ export default async function RingkasanPage({
         {bdayMembers.map((m) => (
           <Link key={m.id} href={`/anggota/${m.id}`} className="flex items-center gap-2.5 bg-card border border-border rounded-xl px-3.5 py-2.5">
             <span className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--amber-light)', color: 'var(--amber)' }}>
-              &#9733;
+              <Cake size={16} />
             </span>
             <span className="flex-1">
               <div className="text-[13.5px] font-bold">{m.nama_baptis} {m.nama_lengkap}</div>
-              <div className="text-[11.5px] text-muted">
-                Ulang tahun {m.tanggal_lahir ? `${m.tanggal_lahir.slice(8, 10)}/${m.tanggal_lahir.slice(5, 7)}` : '—'}
-              </div>
+              <div className="text-[11.5px] text-muted">Ulang tahun {birthLabel(m.tanggal_lahir) ?? '—'}</div>
             </span>
           </Link>
         ))}
+      </div>
+
+      <div className="text-xs font-bold text-muted uppercase mt-4.5 mb-2">Anniversary Bulan Ini</div>
+      <div className="flex flex-col gap-1.5">
+        {annivMembers.length === 0 && <p className="text-sm text-muted2">Tidak ada yang anniversary bulan ini.</p>}
+        {annivMembers.map((m) => {
+          const yrs = anniversaryNumber(m.wedding_anniversary!, today.year);
+          return (
+            <Link key={m.id} href={`/anggota/${m.id}`} className="flex items-center gap-2.5 bg-card border border-border rounded-xl px-3.5 py-2.5">
+              <span className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
+                <RingIcon size={16} />
+              </span>
+              <span className="flex-1">
+                <div className="text-[13.5px] font-bold">{m.nama_baptis} {m.nama_lengkap}</div>
+                <div className="text-[11.5px] text-muted">
+                  Anniversary {dateLong(m.wedding_anniversary!)}{yrs > 0 ? ` · ke-${yrs}` : ''}
+                </div>
+              </span>
+            </Link>
+          );
+        })}
       </div>
 
       {isSuperadmin(typedProfile) && (

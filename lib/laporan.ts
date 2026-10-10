@@ -1,7 +1,8 @@
 // lib/laporan.ts — data laporan (dipakai halaman preview, Excel, dan PDF)
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { computePct } from './attendance';
-import { fmtDate, shortDate } from './dates';
+import { fmtDate, dateLong } from './dates';
+import { fetchAllRows } from './fetch-all';
 
 export type LaporanScope = 'event' | 'member';
 export type LaporanParams = Record<string, string | undefined>;
@@ -46,10 +47,12 @@ export async function buildLaporan(sb: SupabaseClient, p: LaporanParams): Promis
     const ids = events.map((e) => e.id);
     const hadirMap = new Map<string, number>();
     if (ids.length) {
-      const { data: att } = await sb.from('attendance').select('event_id, hadir').in('event_id', ids).eq('hadir', true);
-      for (const a of (att || []) as AttRow[]) hadirMap.set(a.event_id!, (hadirMap.get(a.event_id!) || 0) + 1);
+      const att = await fetchAllRows<AttRow>((from, to) =>
+        sb.from('attendance').select('event_id, hadir').in('event_id', ids).eq('hadir', true).order('id').range(from, to)
+      );
+      for (const a of att) hadirMap.set(a.event_id!, (hadirMap.get(a.event_id!) || 0) + 1);
     }
-    const rows = events.map((e) => [shortDate(e.tanggal) + ' ' + e.tanggal.slice(0, 4), e.jenis, e.keterangan || '—', hadirMap.get(e.id) || 0]);
+    const rows = events.map((e) => [dateLong(e.tanggal), e.jenis, e.keterangan || '—', hadirMap.get(e.id) || 0]);
     const total = rows.reduce((s, r) => s + (r[3] as number), 0);
     const notes: string[] = [];
     if (jenisFilter !== 'Semua') notes.push(`Jenis: ${jenisFilter}`);
@@ -60,9 +63,9 @@ export async function buildLaporan(sb: SupabaseClient, p: LaporanParams): Promis
   const filterPel = p.filterPel || 'Semua';
   const filterStatus = p.filterStatus || 'Semua';
   const sortBy = p.sortBy || 'nama';
-  const [{ data: ms }, { data: att }] = await Promise.all([
+  const [{ data: ms }, att] = await Promise.all([
     sb.from('members').select('id, nama_baptis, nama_lengkap, status, pelayanan, cell_groups!members_cell_group_id_fkey(nama)'),
-    sb.from('attendance').select('member_id, hadir, events(tanggal, jenis)'),
+    fetchAllRows<unknown>((from, to) => sb.from('attendance').select('member_id, hadir, events(tanggal, jenis)').order('id').range(from, to)),
   ]);
   const name = (m: MemRow) => `${m.nama_baptis} ${m.nama_lengkap}`.trim();
   const list = ((ms || []) as unknown as MemRow[]).filter(

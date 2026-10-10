@@ -2,9 +2,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Pencil, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/fetch-all';
 import { FilterBar } from '@/components/filter/FilterBar';
 import { computePct, resolveRange, pctColor } from '@/lib/attendance';
-import { avatarColor, initialsOf, shortDate } from '@/lib/dates';
+import { avatarColor, initialsOf, dateLong } from '@/lib/dates';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,9 +29,11 @@ export default async function Page({ params, searchParams }: { params: { id: str
   const { data: ms } = await supabase.from('members').select('id, nama_baptis, nama_lengkap').eq('cell_group_id', cg.id).order('nama_lengkap').returns<M[]>();
   const all = ms || [];
   const ids = all.map((m) => m.id);
-  const { data: att } = ids.length
-    ? await supabase.from('attendance').select('member_id, hadir, events(id, tanggal, jenis)').in('member_id', ids).returns<Att[]>()
-    : { data: [] as Att[] };
+  const att = ids.length
+    ? await fetchAllRows<Att>((from, to) =>
+        supabase.from('attendance').select('member_id, hadir, events(id, tanggal, jenis)').in('member_id', ids).order('id').range(from, to)
+      )
+    : ([] as Att[]);
 
   const rangeKey = (searchParams.range || 'month') as 'week' | 'month' | 'two' | 'all' | 'custom';
   const range = resolveRange(rangeKey, searchParams.start, searchParams.end);
@@ -62,7 +65,7 @@ export default async function Page({ params, searchParams }: { params: { id: str
 
   return (
     <div className="max-w-2xl">
-      <div className="bg-dark text-white rounded-2xl px-5 py-4 mb-4">
+      <div className="hero rounded-3xl px-5 py-4 mb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
             <Link href="/cell-group" className="w-9 h-9 rounded-[10px] bg-white/15 flex items-center justify-center flex-shrink-0" aria-label="Kembali"><ArrowLeft size={16} /></Link>
@@ -112,7 +115,7 @@ export default async function Page({ params, searchParams }: { params: { id: str
           <Link key={x.id} href={`/kegiatan/${x.id}`} className="flex items-center gap-3 bg-card border border-border rounded-xl px-3.5 py-[11px]">
             <span className="flex-1">
               <div className="text-[13px] font-semibold">Cell Group</div>
-              <div className="text-[11px] text-muted2">{shortDate(x.tanggal)} {x.tanggal.slice(0, 4)}</div>
+              <div className="text-[11px] text-muted2">{dateLong(x.tanggal)}</div>
             </span>
             <span className="text-xs font-bold text-accent">{x.hadir} hadir</span>
           </Link>
