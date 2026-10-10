@@ -55,7 +55,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="lg:flex min-h-screen">
       <Sidebar isSuperadmin={typedProfile.role === 'superadmin'} />
       <div className="flex-1 min-w-0">
-        <main className="px-4 py-5 pb-24 lg:px-8 lg:py-8 lg:pb-8 max-w-none">
+        <main className="px-4 py-5 pb-36 lg:px-8 lg:py-8 lg:pb-8 max-w-none">
           {children}
         </main>
       </div>

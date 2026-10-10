@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { dateLong } from '@/lib/dates';
 import { Plus, Download } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -142,14 +143,13 @@ export default async function KegiatanPage({
               </tr>
             )}
             {sorted.map((e) => {
-              const d = new Date(e.tanggal + 'T00:00:00');
               const done = isDone(e);
               const comp = picCompleteness(e);
               return (
                 <tr key={e.id} className="border-b border-border last:border-0 hover:bg-bg cursor-pointer">
                   <td className="p-0">
                     <Link href={`/kegiatan/${e.id}`} className="block px-1.5 py-2.5 text-[12.5px] whitespace-nowrap">
-                      {d.getDate()} {MONTH_NAMES[d.getMonth()]}
+                      {dateLong(e.tanggal)}
                     </Link>
                   </td>
                   <td className="p-0">

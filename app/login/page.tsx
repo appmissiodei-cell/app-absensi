@@ -37,10 +37,12 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center bg-bg px-6">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm bg-card border border-border rounded-2xl p-6"
+        className="w-full max-w-sm bg-card border border-border rounded-3xl p-6"
       >
-        <h1 className="text-xl font-extrabold text-text mb-1">Absensi Komunitas MD</h1>
-        <p className="text-sm text-muted mb-6">Masuk untuk mengelola absensi</p>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-blue.png" alt="Missio Dei" className="w-28 h-auto mx-auto mb-4" />
+        <h1 className="text-xl font-extrabold text-text mb-1 text-center">Absensi Komunitas Missio Dei</h1>
+        <p className="text-sm text-muted mb-6 text-center">Masuk untuk mengelola absensi</p>
 
         <label className="block text-xs font-semibold text-muted mb-1.5">Email</label>
         <input
@@ -48,7 +50,7 @@ export default function LoginPage() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-lg border border-border px-3 py-2.5 text-sm mb-4"
+          className="w-full rounded-xl border border-border px-3 py-2.5 text-sm mb-4"
         />
 
         <label className="block text-xs font-semibold text-muted mb-1.5">Password</label>
@@ -57,7 +59,7 @@ export default function LoginPage() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-lg border border-border px-3 py-2.5 text-sm mb-4"
+          className="w-full rounded-xl border border-border px-3 py-2.5 text-sm mb-4"
         />
 
         {error && <p className="text-sm text-danger mb-4">{error}</p>}
@@ -65,7 +67,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-xl bg-accent text-white font-bold py-3 text-sm disabled:opacity-60"
+          className="w-full rounded-2xl bg-accent text-white font-bold py-3 text-sm shadow-[0_8px_18px_rgba(29,95,196,.28)] disabled:opacity-60"
         >
           {loading ? 'Masuk...' : 'Masuk'}
         </button>

@@ -1,16 +1,19 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Pencil, Star } from 'lucide-react';
+import { ArrowLeft, Pencil, Cake, QrCode, Eye } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { FilterBar } from '@/components/filter/FilterBar';
 import { computePct, resolveRange, pctColor } from '@/lib/attendance';
+import { RingIcon } from '@/components/ui/RingIcon';
+import { CardShare } from '@/components/card/CardShare';
+import { dateLong, birthLabel, avatarColor, initialsOf } from '@/lib/dates';
 
 export const dynamic = 'force-dynamic';
 
 type Row = {
   id: string; nama_baptis: string; nama_lengkap: string; nik: string | null; no_hp: string | null; email: string | null;
   pelayanan: string[]; tanggal_lahir: string | null; wedding_anniversary: string | null;
-  status: 'Aktif' | 'Tidak Aktif'; cell_groups: { nama: string } | null;
+  status: 'Aktif' | 'Tidak Aktif'; qr_token: string; cell_groups: { nama: string } | null;
 };
 type AttRow = { hadir: boolean; events: { tanggal: string; jenis: string } | null };
 
@@ -21,16 +24,6 @@ const RANGE_OPTIONS = [
   { value: 'all', label: 'Semua' },
   { value: 'custom', label: 'Pilih Rentang Tanggal' },
 ];
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-const AVATAR_COLORS = ['#0E7C66', '#2563EB', '#B45309', '#7C3AED', '#DB2777', '#6C736A'];
-
-const shortDate = (iso: string) => {
-  const d = new Date(iso + 'T00:00:00');
-  return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
-};
-const longDate = (iso: string | null) => (iso ? `${shortDate(iso)} ${iso.slice(0, 4)}` : '—');
-const avatarColor = (id: string) => AVATAR_COLORS[parseInt(id.replace(/\D/g, '').slice(-3) || '0', 10) % AVATAR_COLORS.length];
-
 export default async function Page({
   params,
   searchParams,
@@ -42,7 +35,7 @@ export default async function Page({
   const [{ data: m }, { data: att }] = await Promise.all([
     supabase
       .from('members')
-      .select('id, nama_baptis, nama_lengkap, nik, no_hp, email, pelayanan, tanggal_lahir, wedding_anniversary, status, cell_groups!members_cell_group_id_fkey(nama)')
+      .select('id, nama_baptis, nama_lengkap, nik, no_hp, email, pelayanan, tanggal_lahir, wedding_anniversary, status, qr_token, cell_groups!members_cell_group_id_fkey(nama)')
       .eq('id', params.id)
       .maybeSingle<Row>(),
     supabase.from('attendance').select('hadir, events(tanggal, jenis)').eq('member_id', params.id).returns<AttRow[]>(),
@@ -62,27 +55,25 @@ export default async function Page({
     .sort((a, b) => (a.events!.tanggal < b.events!.tanggal ? 1 : -1));
 
   const fullName = `${m.nama_baptis} ${m.nama_lengkap}`.trim();
-  const initials = ((m.nama_baptis[0] || '') + (m.nama_lengkap[0] || '')).toUpperCase();
+  const initials = initialsOf(m.nama_baptis, m.nama_lengkap);
   const isActive = m.status === 'Aktif';
-
-  const info: [string, React.ReactNode][] = [
-    ['NIK', m.nik || '—'],
-    ['No. HP', m.no_hp ? <a href={`tel:${m.no_hp}`} className="text-accent">{m.no_hp}</a> : '—'],
-    ['Email', m.email ? <a href={`mailto:${m.email}`} className="text-accent break-all">{m.email}</a> : '—'],
-    ['Pelayanan', m.pelayanan.length ? m.pelayanan.join(', ') : '—'],
-  ];
 
   return (
     <div className="max-w-2xl">
       {/* Header gelap — port dari viewMemberDetail() */}
-      <div className="bg-dark text-white rounded-2xl px-5 py-4 mb-4">
+      <div className="hero rounded-3xl px-5 py-4 mb-4">
         <div className="flex items-center justify-between">
           <Link href="/anggota" className="w-9 h-9 rounded-[10px] bg-white/15 flex items-center justify-center" aria-label="Kembali">
             <ArrowLeft size={16} />
           </Link>
-          <Link href={`/anggota/${m.id}/edit`} className="w-9 h-9 rounded-[10px] bg-white/15 flex items-center justify-center" aria-label="Edit">
-            <Pencil size={16} />
-          </Link>
+          <div className="flex gap-2">
+            <Link href={`/anggota/${m.id}/kartu`} className="w-9 h-9 rounded-[10px] bg-white/15 flex items-center justify-center" aria-label="Kartu QR">
+              <QrCode size={16} />
+            </Link>
+            <Link href={`/anggota/${m.id}/edit`} className="w-9 h-9 rounded-[10px] bg-white/15 flex items-center justify-center" aria-label="Edit">
+              <Pencil size={16} />
+            </Link>
+          </div>
         </div>
         <div className="flex items-center gap-3 mt-2">
           <span
@@ -101,20 +92,34 @@ export default async function Page({
                 {m.status}
               </span>
             </div>
-            <div className="text-[12.5px] text-white/75 mt-0.5">{m.cell_groups?.nama || 'Belum Masuk CG'}</div>
+            <div className="text-[12.5px] text-white/75 mt-0.5">
+              {m.cell_groups?.nama || 'Belum Masuk CG'}
+              {m.pelayanan.length > 0 && ` · ${m.pelayanan.join(', ')}`}
+            </div>
           </div>
         </div>
         {(m.tanggal_lahir || m.wedding_anniversary) && (
           <div className="flex gap-3.5 mt-2.5 text-xs text-white/80">
             {m.tanggal_lahir && (
-              <span className="flex items-center gap-1.5"><Star size={13} className="text-white/70" />{shortDate(m.tanggal_lahir)}</span>
+              <span className="flex items-center gap-1.5"><Cake size={14} className="text-white/70" />{birthLabel(m.tanggal_lahir)}</span>
             )}
             {m.wedding_anniversary && (
-              <span className="flex items-center gap-1.5"><Star size={13} className="text-white/70" />Anniv {longDate(m.wedding_anniversary)}</span>
+              <span className="flex items-center gap-1.5"><RingIcon size={14} className="text-white/70" />Anniv {dateLong(m.wedding_anniversary)}</span>
             )}
           </div>
         )}
       </div>
+
+      <div className="bg-card border border-border rounded-2xl p-3.5">
+        <div className="flex items-center gap-2 text-[13px] font-bold"><QrCode size={16} className="text-accent" />Kartu QR Anggota</div>
+        <p className="text-xs text-muted mt-1 mb-2.5">Kirim kartu ke anggota. Saat acara, petugas tinggal scan QR-nya.</p>
+        <CardShare
+          token={m.qr_token} namaBaptis={m.nama_baptis} namaLengkap={m.nama_lengkap} cgNama={m.cell_groups?.nama ?? null}
+          extra={<Link href={`/anggota/${m.id}/kartu`} className="inline-flex items-center gap-1.5 rounded-[9px] border border-border bg-card px-2.5 py-1.5 text-[11.5px] font-semibold"><Eye size={14} />Lihat kartu</Link>}
+        />
+      </div>
+
+      <div className="h-4" />
 
       <FilterBar
         selects={[{ name: 'range', value: rangeKey, options: RANGE_OPTIONS }]}
@@ -135,16 +140,6 @@ export default async function Page({
         ))}
       </div>
 
-      <div className="mt-[18px] text-xs font-bold text-muted uppercase">Data Diri</div>
-      <dl className="mt-2 bg-card border border-border rounded-2xl divide-y divide-border">
-        {info.map(([k, v]) => (
-          <div key={k} className="flex gap-3 px-4 py-2.5 text-[13.5px]">
-            <dt className="w-24 flex-shrink-0 text-muted font-semibold">{k}</dt>
-            <dd className="min-w-0">{v}</dd>
-          </div>
-        ))}
-      </dl>
-
       <div className="mt-[18px] text-xs font-bold text-muted uppercase">Riwayat Kehadiran</div>
       <div className="mt-2 space-y-1.5">
         {hist.length === 0 && <div className="text-[13px] text-muted2">Tidak ada data pada periode ini.</div>}
@@ -153,7 +148,7 @@ export default async function Page({
             <span className="w-[5px] h-[5px] rounded-full" style={{ background: a.hadir ? 'var(--accent)' : 'var(--red)' }} />
             <span className="flex-1">
               <div className="text-[13px] font-semibold">{a.events!.jenis}</div>
-              <div className="text-[11px] text-muted2">{shortDate(a.events!.tanggal)} {a.events!.tanggal.slice(0, 4)}</div>
+              <div className="text-[11px] text-muted2">{dateLong(a.events!.tanggal)}</div>
             </span>
             <span className="text-xs font-bold" style={{ color: a.hadir ? 'var(--accent)' : 'var(--red)' }}>
               {a.hadir ? 'Hadir' : 'Tidak Hadir'}

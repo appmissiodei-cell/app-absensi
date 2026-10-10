@@ -50,6 +50,6 @@ export const config = {
   // Aset PWA (manifest, service worker, ikon, halaman offline) harus publik: kalau
   // ikut dicegat middleware, browser dialihkan ke /login dan aplikasi tidak bisa di-install.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw.js|offline.html|icons/).*)',
+    '/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw.js|offline.html|icons/|kartu/|logo-blue.png|logo-white.png).*)',
   ],
 };

@@ -27,6 +27,7 @@ export type Database = {
           nik: string | null;
           no_hp: string | null;
           email: string | null;
+          qr_token: string;
           created_at: string;
         };
         Insert: {
@@ -41,6 +42,7 @@ export type Database = {
           nik?: string | null;
           no_hp?: string | null;
           email?: string | null;
+          qr_token?: string;
         };
         Update: Partial<Database['public']['Tables']['members']['Insert']>;
       };
@@ -72,10 +74,11 @@ export type Database = {
           event_id: string;
           member_id: string;
           hadir: boolean;
+          checked_in_at: string | null;
           updated_at: string;
         };
-        Insert: { id?: string; event_id: string; member_id: string; hadir?: boolean };
-        Update: Partial<{ hadir: boolean }>;
+        Insert: { id?: string; event_id: string; member_id: string; hadir?: boolean; checked_in_at?: string | null };
+        Update: Partial<{ hadir: boolean; checked_in_at: string | null }>;
       };
       profiles: {
         Row: { id: string; nama: string; role: 'admin' | 'superadmin'; active: boolean; created_at: string };
@@ -90,7 +93,12 @@ export type Database = {
     // sempurna — itu normal untuk placeholder, bukan bug di halaman yang
     // memakainya.
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      get_card_by_token: {
+        Args: { p_token: string };
+        Returns: { nama_baptis: string; nama_lengkap: string; cell_group_nama: string | null; status: string }[];
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

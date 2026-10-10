@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { jakartaToday } from '@/lib/dates';
+import { jakartaToday, dateLong } from '@/lib/dates';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,10 +97,7 @@ export default async function KalenderPage({
     );
   }
 
-  const shortDate = (iso: string) => {
-    const d = new Date(iso + 'T00:00:00');
-    return `${d.getDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][d.getMonth()]}`;
-  };
+  const shortDate = dateLong;
 
   return (
     <div>

@@ -1,0 +1,63 @@
+name: Backup data Supabase
+
+# Berjalan otomatis tiap hari pukul 00:00 WIB (17:00 UTC) dan bisa dijalankan manual
+# lewat tab Actions -> "Backup data Supabase" -> Run workflow.
+#
+# KEAMANAN: hasil backup berisi data pribadi (NIK, HP, email, tanggal lahir, token kartu QR).
+# Karena itu file DIENKRIPSI (AES-256) dengan kata sandi dari secret BACKUP_PASSPHRASE sebelum
+# disimpan. Tanpa kata sandi itu, isi artifact tidak bisa dibaca — walau repo/akun GitHub bocor.
+# Wajib isi secret BACKUP_PASSPHRASE (Settings -> Secrets and variables -> Actions) dan simpan
+# kata sandinya di tempat aman TERPISAH (password manager). Kalau hilang, backup tidak bisa dibuka.
+on:
+  schedule:
+    - cron: '0 17 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Pastikan kata sandi backup sudah diisi
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ ${#BACKUP_PASSPHRASE} -lt 16 ]; then
+            echo "::error::Secret BACKUP_PASSPHRASE belum diisi atau kurang dari 16 karakter. Backup dibatalkan."
+            exit 1
+          fi
+
+      - name: Ambil data dari Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/backup.mjs
+
+      - name: Enkripsi hasil backup
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          umask 077
+          mkdir -p encrypted
+          tar -czf - backup | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:BACKUP_PASSPHRASE -out "encrypted/backup-$(date -u +%Y%m%d).tar.gz.enc"
+          # hapus versi terbuka supaya tidak ikut terunggah
+          rm -rf backup
+          ls -l encrypted
+
+      # Disimpan sebagai "artifact" privat (BUKAN di-commit ke repo). Isinya sudah terenkripsi.
+      - name: Simpan hasil backup (terenkripsi)
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ github.run_id }}
+          path: encrypted/
+          retention-days: 90
+          if-no-files-found: error

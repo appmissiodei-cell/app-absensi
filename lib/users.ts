@@ -10,5 +10,5 @@ export async function emailOf(id: string): Promise<string> {
   return data?.user?.email || '';
 }
 
-export const ROLE_COLOR = { superadmin: '#7C3AED', admin: '#0E7C66' } as const;
+export const ROLE_COLOR = { superadmin: '#7C3AED', admin: '#1D5FC4' } as const;
 export const roleLabel = (r: string) => (r === 'superadmin' ? 'Superadmin' : 'Admin');

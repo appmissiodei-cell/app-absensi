@@ -11,8 +11,24 @@ body {
 
 /* Variabel warna yang dipakai lib/attendance.ts (pctColor) — samakan dengan tailwind.config.ts */
 :root {
-  --accent: #0E7C66;
+  --accent: #1D5FC4;
   --amber: #B45309;
   --red: #DC2626;
-  --muted2: #8B928A;
+  --muted2: #8A97AC;
+  --shadow-card: 0 6px 20px rgba(16, 60, 130, 0.08);
+}
+
+/* Header biru bergradasi + lingkaran dekoratif (gaya fintech) */
+.hero {
+  color: #fff;
+  background:
+    radial-gradient(circle at 94% -8%, rgba(255, 255, 255, 0.11) 0 92px, transparent 93px),
+    radial-gradient(circle at 76% 118%, rgba(255, 255, 255, 0.08) 0 64px, transparent 65px),
+    linear-gradient(135deg, #094B7F 0%, #1D5FC4 100%);
+  box-shadow: 0 10px 26px rgba(9, 75, 127, 0.22);
+}
+
+/* Semua kartu putih ber-border mendapat bayangan lembut */
+[class~='bg-card'][class~='border'] {
+  box-shadow: var(--shadow-card);
 }

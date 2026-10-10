@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Check, X } from 'lucide-react';
+import { ArrowLeft, Check, X, ScanLine } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { FilterBar } from '@/components/filter/FilterBar';
 import { KebabMenu, type KebabItem } from '@/components/ui/KebabMenu';
@@ -8,7 +8,7 @@ import { PicCard } from '@/components/events/PicCard';
 import { AttendanceEditor, type Attendee } from '@/components/events/AttendanceEditor';
 import { deleteEvent } from '../actions';
 import { isSuperadmin, type Profile } from '@/lib/permissions';
-import { fmtDate, isDone, avatarColor, initialsOf } from '@/lib/dates';
+import { fmtDate, isDone, todayISO, avatarColor, initialsOf } from '@/lib/dates';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,25 +47,35 @@ export default async function Page({ params, searchParams }: { params: { id: str
     }))
     .sort((a, b) => a.nama.localeCompare(b.nama));
 
+  const scanOpen = ev.tanggal >= todayISO();
   const kebab: KebabItem[] = done
     ? [
+        ...(scanOpen ? [{ label: 'Scan Kehadiran', href: `/kegiatan/${ev.id}/scan` } as KebabItem] : []),
         { label: 'Edit Detail Event', href: `/kegiatan/${ev.id}/edit` },
         { label: 'Edit Detail Kehadiran', href: `/kegiatan/${ev.id}?edit=1` },
         ...(superadmin ? [{ label: 'Hapus Event', danger: true, confirm: { title: 'Hapus kegiatan ini?', body: 'Data absensi kegiatan ini juga akan ikut terhapus. Tindakan ini tidak bisa dibatalkan.', confirmLabel: 'Ya, Hapus' }, action: deleteEvent.bind(null, ev.id) } as KebabItem] : []),
       ]
     : [
+        { label: 'Scan Kehadiran', href: `/kegiatan/${ev.id}/scan` },
         { label: 'Edit Kegiatan', href: `/kegiatan/${ev.id}/edit` },
         ...(superadmin ? [{ label: 'Hapus Kegiatan', danger: true, confirm: { title: 'Hapus kegiatan ini?', body: 'Kegiatan yang belum berlangsung ini akan dihapus dari jadwal.', confirmLabel: 'Ya, Hapus' }, action: deleteEvent.bind(null, ev.id) } as KebabItem] : []),
       ];
 
   const header = (
-    <div className="bg-dark text-white rounded-2xl px-5 py-4 mb-3">
+    <div className="hero rounded-3xl px-5 py-4 mb-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5 min-w-0">
           <Link href="/kegiatan" className="w-9 h-9 rounded-[10px] bg-white/15 flex items-center justify-center flex-shrink-0" aria-label="Kembali"><ArrowLeft size={16} /></Link>
           <div className="text-xl font-extrabold truncate">{ev.jenis}</div>
         </div>
-        <KebabMenu items={kebab} />
+        <div className="flex items-center gap-2">
+          {scanOpen && (
+            <Link href={`/kegiatan/${ev.id}/scan`} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-white/15 text-[12.5px] font-bold" aria-label="Scan kehadiran">
+              <ScanLine size={16} />Scan
+            </Link>
+          )}
+          <KebabMenu items={kebab} />
+        </div>
       </div>
       <div className="text-[12.5px] text-white/75 mt-2">
         {fmtDate(ev.tanggal)} · {ev.jam.slice(0, 5)}{editMode && <> · <b className="text-white">Mode Edit</b></>}
